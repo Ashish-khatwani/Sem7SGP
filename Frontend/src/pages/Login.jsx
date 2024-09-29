@@ -1,38 +1,58 @@
 import React, { useState } from "react";
 import { Refrigerator } from "lucide-react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import Navbar from "../Component/Navbar";
 import axios from "axios";
+import { useUser } from "../UserContext";
 
 export default function Login() {
-  const [email, setEmail] = useState('');
-  const [otp, setOtp] = useState('');
+  const [email, setEmail] = useState("");
+  const [otp, setOtp] = useState("");
+  const [name, setName] = useState(""); // Local state for name
   const [step, setStep] = useState(1);
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState("");
+  const { setName: setUserName } = useUser(); // Context method to set the name
+  const navigate = useNavigate();
 
   const handleEmailSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('/api/send-otp', { email });
-      setMessage('OTP sent to your email!');
+      const response = await axios.post("http://localhost:5000/generate-otp", {
+        email,
+      });
+      alert("OTP sent to your email!");
       setStep(2);
     } catch (error) {
-      setMessage('Error sending OTP. Please try again.');
+      setMessage("Error sending OTP. Please try again.");
     }
   };
 
   const handleOtpSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('/api/verify-otp', { email, otp });
-      if (response.data.success) {
-        setMessage('Login successful!');
-        // Redirect to another page or perform further actions
-      } else {
-        setMessage('Invalid OTP. Please try again.');
+      const response = await axios.post("http://localhost:5000/verify-otp", {
+        email,
+        otp,
+      });
+
+      const message = response.data.message;
+
+      if (message === "OTP verified successfully") {
+        setMessage("Login successful!");
+        alert("Login successful!");
+
+        // Set the name in context
+        setUserName(name);
+
+        // Redirect to home page
+        navigate("/");
+      } else if (message === "Invalid OTP") {
+        setMessage("Invalid OTP. Please try again.");
+        alert("Invalid OTP. Please try again.");
       }
     } catch (error) {
-      setMessage('Error verifying OTP. Please try again.');
+      setMessage("Error verifying OTP. Please try again.");
+      alert("Error verifying OTP. Please try again.");
     }
   };
 
@@ -44,12 +64,26 @@ export default function Login() {
           <div className="flex flex-col items-center space-y-3 text-center">
             <Refrigerator className="w-16 h-16 text-primary" />
             <h1 className="text-4xl font-bold text-gray-800">RentiFy</h1>
-            <p className="text-sm text-gray-500">
-              Log in to manage your appliance rentals
-            </p>
           </div>
           {step === 1 && (
             <form className="space-y-6" onSubmit={handleEmailSubmit}>
+              <div className="space-y-2">
+                <label
+                  htmlFor="name"
+                  className="text-sm font-medium text-gray-700"
+                >
+                  Full Name
+                </label>
+                <input
+                  id="name"
+                  placeholder="John Doe"
+                  required
+                  type="text"
+                  value={name} // Bind the input value to the name state
+                  onChange={(e) => setName(e.target.value)} // Update the name state
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:outline-none"
+                />
+              </div>
               <div className="space-y-2">
                 <label
                   htmlFor="email"
@@ -101,23 +135,6 @@ export default function Login() {
                 Verify OTP
               </button>
             </form>
-          )}
-          <div className="text-center text-sm">
-            {step === 1 ? (
-              <Link className="underline text-primary" to="#">
-                Forgot password?
-              </Link>
-            ) : (
-              <p className="text-gray-500">{message}</p>
-            )}
-          </div>
-          {step === 1 && (
-            <div className="text-center text-sm">
-              {"Don't have an account? "}
-              <Link className="underline text-primary" to="/signup">
-                Sign up
-              </Link>
-            </div>
           )}
         </div>
       </div>
